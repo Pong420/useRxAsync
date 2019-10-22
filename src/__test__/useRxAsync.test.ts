@@ -24,6 +24,7 @@ test('typings', () => {
   act(() => caseA.result.current.run(1000));
   act(() => caseB.result.current.run(1000));
   act(() => caseC.result.current.run(1000));
+  act(() => caseD.result.current.run(1000));
 
   act(() => caseB.result.current.run());
   act(() => caseC.result.current.run());

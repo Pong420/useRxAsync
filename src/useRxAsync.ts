@@ -8,14 +8,15 @@ type RxAsyncFnWithParam<T, P> = (params: P) => ObservableInput<T>;
 type RxAsyncFnOptionalParam<T, P> = (params?: P) => ObservableInput<T>;
 
 export type RxAsyncFn<T, P> =
-  | RxAsyncFnWithoutParam<T>
   | RxAsyncFnOptionalParam<T, P>
+  | RxAsyncFnWithoutParam<T>
   | RxAsyncFnWithParam<T, P>;
 
 export interface RxAsyncOptions<I, O = I> {
   initialValue?: O;
   defer?: boolean;
   pipe?: (ob: Observable<I>) => Observable<O>;
+  onStart?(): void;
   onSuccess?(value: O): void;
   onFailure?(error: any): void;
 }
@@ -38,8 +39,8 @@ type RxAsyncStateOptionalParam<T, P> = RxAsyncStateCommon<T> & {
 };
 
 export type RxAsyncState<T, P> =
-  | RxAsyncStateWithoutParam<T>
   | RxAsyncStateOptionalParam<T, P>
+  | RxAsyncStateWithoutParam<T>
   | RxAsyncStateWithParam<T, P>;
 
 interface State<T> {
@@ -83,9 +84,9 @@ export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFnWithoutParam<O>,
   options?: RxAsyncOptions<T, O> & {
     initialValue?: undefined;
-    defer?: undefined;
+    defer?: false;
   }
-): RxAsyncStateWithoutParam<O>;
+): RxAsyncStateWithoutParam<O> | RxAsyncStateOptionalParam<O, P>;
 
 export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFnOptionalParam<O, P>,
@@ -107,9 +108,11 @@ export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFnWithoutParam<O>,
   options: RxAsyncOptions<T, O> & {
     initialValue: O;
-    defer?: undefined;
+    defer?: false;
   }
-): RxAsyncStateWithoutParam<O> & { data: O };
+): (RxAsyncStateWithoutParam<O> | RxAsyncStateOptionalParam<O, P>) & {
+  data: O;
+};
 
 export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFnOptionalParam<O, P>,
@@ -131,7 +134,8 @@ export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFn<O, P>,
   options: RxAsyncOptions<T, O> = {}
 ): RxAsyncState<O, P> {
-  const { defer, pipe, initialValue, onSuccess, onFailure } = options || {};
+  const { defer, pipe, initialValue, onStart, onSuccess, onFailure } =
+    options || {};
 
   const [state, dispatch] = useReducer<
     Reducer<State<O>, Actions<O>>,
@@ -142,6 +146,8 @@ export function useRxAsync<T, P, O = T>(
 
   const run = useCallback(
     (params?: P) => {
+      onStart && onStart();
+
       dispatch({ type: 'FETCH_INIT' });
 
       let source$: Observable<any> = from(fn(params as P));
@@ -164,7 +170,7 @@ export function useRxAsync<T, P, O = T>(
       subscription.current.unsubscribe();
       subscription.current = newSubscription;
     },
-    [fn, pipe, onSuccess, onFailure]
+    [fn, pipe, onStart, onSuccess, onFailure]
   );
 
   const cancel = useCallback(() => {
