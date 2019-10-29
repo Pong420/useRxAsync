@@ -14,7 +14,6 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
-    "lint:types": "tsc 'src/__test__/*-test.ts' --noEmit",
     "build:cjs": "tsc",
     "build:es": "tsc -m esNext --outDir esm",
     "build": "yarn build:cjs && yarn build:es",
@@ -23,7 +22,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint:types && lint-staged"
+      "pre-commit": "yarn lint && lint-staged"
     }
   },
   "author": "@Pong420",

@@ -11,8 +11,8 @@ const state = useRxAsync(asyncFn, options?);
 | name    | description                                                                              |
 | ------- | ---------------------------------------------------------------------------------------- |
 | data    | The value return from asyncFn                                                            |
-| loading |                                                                                          |
-| error   |                                                                                          |
+| loading | boolean                                                                                  |
+| error   | any, depends on your asyncFn                                                             |
 | cancel  | Skip the new value return from your `asyncFn`. This will not "cancel" your api `asyncFn` |
 | reset   | reset data, loading, error to initialValue                                               |
 
@@ -128,3 +128,7 @@ function useHooks() {
   });
 }
 ```
+
+### Caching
+
+if you are axios user, you could use [kuitos/axios-extensions](https://github.com/kuitos/axios-extensions)
