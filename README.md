@@ -32,7 +32,7 @@ const asyncFnRx = (result: string) => timer(1000).pipe(map(() => result));
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | initialValue | Set the initial value of your `asyncFn`                                                                                                        |
 | defer        | By default, your `asyncFn` will be call at initial and it changed. if you set `defer` to true, it will only run when you call the `run` mehtod |
-| pipe         | rxjs pipe, transform the result or some else                                                                                                   |
+| pipe         | rxjs pipe, not useful feature                                                                                                                  |
 | onSuccess    | callback when `asyncFn` success                                                                                                                |
 | onFaulure    | callback when `asyncFn` failure                                                                                                                |
 
@@ -93,21 +93,35 @@ function useHooks() {
 
 ### With initial value
 
-```ts
-// if you are using axios, and you have an api return a string array
-const apiRequest = () => axios.get<string[]>('/some-api');
+```tsx
+const apiRequest = () => fetch('/api').then<string[]>(res => res.json());
 
-// you could wrap your api request first
-const asyncFn = () => apiRequest().then(res => res.data);
-
-function useHooks() {
-  const { data } = useRxAsync(asyncFn, { initialValue: [] });
+// without initialValue the type of data will be `string[] | undefined`
+// so you will need to check the data is not undefined
+function WithoutInitialValue() {
+  const { data } = useRxAsync(apiRequest);
 
   return (
     <ul>
-      {data.map((str, index) => (
-        <li key={index}>{str}</li>
-      ))}
+      {data &&
+        data.map((str, index) => {
+          return <li key={index}>{str}</li>;
+        })}
+    </ul>
+  );
+}
+
+// with initialValue the type of data will always be `string[]`
+function WithInitialValue() {
+  const { data } = useRxAsync(apiRequest, {
+    initialValue: [],
+  });
+
+  return (
+    <ul>
+      {data.map((str, index) => {
+        return <li key={index}>{str}</li>;
+      })}
     </ul>
   );
 }
