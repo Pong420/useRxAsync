@@ -8,13 +8,13 @@ const state = useRxAsync(asyncFn, options?);
 
 ## State
 
-| name    | description                                                                              |
-| ------- | ---------------------------------------------------------------------------------------- |
-| data    | The value return from asyncFn                                                            |
-| loading | boolean                                                                                  |
-| error   | any, depends on your asyncFn                                                             |
-| cancel  | Skip the new value return from your `asyncFn`. This will not "cancel" your api `asyncFn` |
-| reset   | reset data, loading, error to initialValue                                               |
+| name    | description                                     |
+| ------- | ----------------------------------------------- |
+| data    | The value return from asyncFn                   |
+| loading | boolean                                         |
+| error   | any, depends on your asyncFn                    |
+| cancel  | ignore the new value return from your `asyncFn` |
+| reset   | reset data, loading, error to initialValue      |
 
 ## AsyncFn
 
@@ -22,19 +22,18 @@ A function that return `PromiseLike` or `Observable`. For examples,
 
 ```ts
 const delay = (ms: number) => new Promise(_ => setTimeout(_, ms));
-const asyncFn = () => delay(1000).then(() => 'Hello world');
-const asyncFnRx = (result: string) => timer(1000).pipe(map(() => result));
+const rxAsyncFn = (result: string) => timer(1000).pipe(map(() => result));
 ```
 
 ## Options
 
-| option       | description                                                                                                                                    |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| initialValue | Set the initial value of your `asyncFn`                                                                                                        |
-| defer        | By default, your `asyncFn` will be call at initial and it changed. if you set `defer` to true, it will only run when you call the `run` mehtod |
-| pipe         | rxjs pipe, not useful feature                                                                                                                  |
-| onSuccess    | callback when `asyncFn` success                                                                                                                |
-| onFaulure    | callback when `asyncFn` failure                                                                                                                |
+| option       | description                                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| initialValue | set the initial value of your `asyncFn`                                                                                                          |
+| defer        | by default, your `asyncFn` will be call at initial or it changed. if you set `defer` to true, it will only run when you execute the `run` mehtod |
+| pipe         | rxjs pipe, not useful feature                                                                                                                    |
+| onSuccess    | callback when `asyncFn` success                                                                                                                  |
+| onFaulure    | callback when `asyncFn` failure                                                                                                                  |
 
 ## Recipes
 
@@ -43,6 +42,11 @@ const delay = (ms: number) => new Promise(_ => setTimeout(_, ms));
 ```
 
 ### Basic
+
+Examples
+
+- [Basic](https://stackblitz.com/edit/use-rx-async-basic)
+- [Observable](https://stackblitz.com/edit/use-rx-async-observable)
 
 ```js
 import { useRxAsync } from 'use-rx-async';
@@ -63,6 +67,10 @@ function Component() {
 ```
 
 ### AsyncFn with dynamic parameters
+
+Examples
+
+- [Search github user repo](https://stackblitz.com/edit/use-rx-async-dynamic)
 
 ```ts
 const asyncFnWithParam = (result: string) => delay(1000).then(() => result);
@@ -143,6 +151,6 @@ function useHooks() {
 }
 ```
 
-### Caching
+## Caching
 
 if you are axios user, you could use [kuitos/axios-extensions](https://github.com/kuitos/axios-extensions)
