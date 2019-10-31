@@ -1,15 +1,14 @@
 import { useEffect, useCallback, useReducer, useRef, Reducer } from 'react';
 import { from, Subscription, Observable, ObservableInput } from 'rxjs';
 
-type RxAsyncFnWithoutParam<T = any> = () => ObservableInput<T>;
-
 type RxAsyncFnWithParam<T, P> = (params: P) => ObservableInput<T>;
 
-type RxAsyncFnOptionalParam<T, P> = (params?: P) => ObservableInput<T>;
+type RxAsyncFnOptionalParam<T, P> =
+  | (() => ObservableInput<T>)
+  | ((params?: P) => ObservableInput<T>);
 
 export type RxAsyncFn<T, P> =
   | RxAsyncFnOptionalParam<T, P>
-  | RxAsyncFnWithoutParam<T>
   | RxAsyncFnWithParam<T, P>;
 
 export interface RxAsyncOptions<I, O = I> {
@@ -26,21 +25,16 @@ interface RxAsyncStateCommon<T> extends State<T> {
   reset: () => void;
 }
 
-type RxAsyncStateWithoutParam<T> = RxAsyncStateCommon<T> & {
-  run: () => void;
-};
-
 type RxAsyncStateWithParam<T, P> = RxAsyncStateCommon<T> & {
   run: (params: P) => void;
 };
 
 type RxAsyncStateOptionalParam<T, P> = RxAsyncStateCommon<T> & {
-  run: (params?: P) => void;
+  run: (() => void) | ((params?: P) => void);
 };
 
 export type RxAsyncState<T, P> =
   | RxAsyncStateOptionalParam<T, P>
-  | RxAsyncStateWithoutParam<T>
   | RxAsyncStateWithParam<T, P>;
 
 interface State<T> {
@@ -81,44 +75,9 @@ function reducer<T>(state: State<T>, action: Actions<T>): State<T> {
 }
 
 export function useRxAsync<T, P, O = T>(
-  fn: RxAsyncFnWithoutParam<O>,
-  options?: RxAsyncOptions<T, O> & {
-    initialValue?: undefined;
-    defer?: false;
-  }
-): RxAsyncStateWithoutParam<O> | RxAsyncStateOptionalParam<O, P>;
-
-export function useRxAsync<T, P, O = T>(
-  fn: RxAsyncFnOptionalParam<O, P>,
-  options: RxAsyncOptions<T, O> & {
-    initialValue?: undefined;
-    defer: true;
-  }
-): RxAsyncStateOptionalParam<O, P>;
-
-export function useRxAsync<T, P, O = T>(
-  fn: RxAsyncFnWithParam<O, P>,
-  options: RxAsyncOptions<T, O> & {
-    initialValue?: undefined;
-    defer: true;
-  }
-): RxAsyncStateWithParam<O, P>;
-
-export function useRxAsync<T, P, O = T>(
-  fn: RxAsyncFnWithoutParam<O>,
-  options: RxAsyncOptions<T, O> & {
-    initialValue: O;
-    defer?: false;
-  }
-): (RxAsyncStateWithoutParam<O> | RxAsyncStateOptionalParam<O, P>) & {
-  data: O;
-};
-
-export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFnOptionalParam<O, P>,
   options: RxAsyncOptions<T, O> & {
     initialValue: O;
-    defer: true;
   }
 ): RxAsyncStateOptionalParam<O, P> & { data: O };
 
@@ -129,6 +88,18 @@ export function useRxAsync<T, P, O = T>(
     defer: true;
   }
 ): RxAsyncStateWithParam<O, P> & { data: O };
+
+export function useRxAsync<T, P, O = T>(
+  fn: RxAsyncFnOptionalParam<O, P>,
+  options?: RxAsyncOptions<T, O>
+): RxAsyncStateOptionalParam<O, P>;
+
+export function useRxAsync<T, P, O = T>(
+  fn: RxAsyncFnWithParam<O, P>,
+  options: RxAsyncOptions<T, O> & {
+    defer: true;
+  }
+): RxAsyncStateWithParam<O, P>;
 
 export function useRxAsync<T, P, O = T>(
   fn: RxAsyncFn<O, P>,

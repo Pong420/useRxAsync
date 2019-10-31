@@ -5,12 +5,10 @@ const delay = (ms: number) => new Promise(_ => setTimeout(_, ms));
 const request = () => delay(0).then(() => 1);
 const errorReqest = () => delay(0).then(() => Promise.reject('error'));
 
-test('typings', () => {
-  const delay = (ms: number) => new Promise(_ => setTimeout(_, ms));
-
-  const requestWithParam = (ms: number) => delay(ms);
-  const requestWithoutParam = () => delay(1000);
-  const requestOptionalParam = (ms = 1000) => delay(ms);
+test('typings', async () => {
+  const requestWithParam = (ms: number) => Promise.resolve(ms);
+  const requestWithoutParam = () => Promise.resolve(1000);
+  const requestOptionalParam = (ms = 1000) => Promise.resolve(ms);
 
   const caseA = renderHook(() => useRxAsync(requestWithParam, { defer: true }));
   const caseB = renderHook(() =>
@@ -29,8 +27,6 @@ test('typings', () => {
   act(() => caseB.result.current.run());
   act(() => caseC.result.current.run());
   act(() => caseD.result.current.run());
-
-  expect(true);
 });
 
 test('basic', async () => {
