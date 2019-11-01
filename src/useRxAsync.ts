@@ -1,15 +1,15 @@
 import { useEffect, useCallback, useReducer, useRef, Reducer } from 'react';
 import { from, Subscription, Observable, ObservableInput } from 'rxjs';
 
-type RxAsyncFnWithParam<T, P> = (params: P) => ObservableInput<T>;
+type RxAsyncFnWithParam<I, P> = (params: P) => ObservableInput<I>;
 
-type RxAsyncFnOptionalParam<T, P> =
-  | (() => ObservableInput<T>)
-  | ((params?: P) => ObservableInput<T>);
+type RxAsyncFnOptionalParam<I, P> =
+  | (() => ObservableInput<I>)
+  | ((params?: P) => ObservableInput<I>);
 
-export type RxAsyncFn<T, P> =
-  | RxAsyncFnOptionalParam<T, P>
-  | RxAsyncFnWithParam<T, P>;
+export type RxAsyncFn<I, P> =
+  | RxAsyncFnOptionalParam<I, P>
+  | RxAsyncFnWithParam<I, P>;
 
 export interface RxAsyncOptions<I, O = I> {
   initialValue?: O;
@@ -20,44 +20,44 @@ export interface RxAsyncOptions<I, O = I> {
   onFailure?(error: any): void;
 }
 
-interface RxAsyncStateCommon<T> extends State<T> {
+interface RxAsyncStateCommon<O> extends State<O> {
   cancel: () => void;
   reset: () => void;
 }
 
-type RxAsyncStateWithParam<T, P> = RxAsyncStateCommon<T> & {
+type RxAsyncStateWithParam<O, P> = RxAsyncStateCommon<O> & {
   run: (params: P) => void;
 };
 
-type RxAsyncStateOptionalParam<T, P> = RxAsyncStateCommon<T> & {
+type RxAsyncStateOptionalParam<O, P> = RxAsyncStateCommon<O> & {
   run: (() => void) | ((params?: P) => void);
 };
 
-export type RxAsyncState<T, P> =
-  | RxAsyncStateOptionalParam<T, P>
-  | RxAsyncStateWithParam<T, P>;
+export type RxAsyncState<O, P> =
+  | RxAsyncStateOptionalParam<O, P>
+  | RxAsyncStateWithParam<O, P>;
 
-interface State<T> {
+interface State<O> {
   loading: boolean;
   error?: any;
-  data?: T;
+  data?: O;
 }
 
-type Actions<T> =
+type Actions<O> =
   | { type: 'FETCH_INIT' }
-  | { type: 'FETCH_SUCCESS'; payload: T }
+  | { type: 'FETCH_SUCCESS'; payload: O }
   | { type: 'FETCH_FAILURE'; payload?: any }
   | { type: 'CANCEL' }
-  | { type: 'RESET'; payload?: T };
+  | { type: 'RESET'; payload?: O };
 
-function init<T>(data?: T): State<T> {
+function init<O>(data?: O): State<O> {
   return {
     loading: false,
     data,
   };
 }
 
-function reducer<T>(state: State<T>, action: Actions<T>): State<T> {
+function reducer<O>(state: State<O>, action: Actions<O>): State<O> {
   switch (action.type) {
     case 'FETCH_INIT':
       return { ...init(state.data), loading: true };
@@ -74,36 +74,36 @@ function reducer<T>(state: State<T>, action: Actions<T>): State<T> {
   }
 }
 
-export function useRxAsync<T, P, O = T>(
+export function useRxAsync<I, P, O = I>(
   fn: RxAsyncFnOptionalParam<O, P>,
-  options: RxAsyncOptions<T, O> & {
+  options: RxAsyncOptions<I, O> & {
     initialValue: O;
   }
 ): RxAsyncStateOptionalParam<O, P> & { data: O };
 
-export function useRxAsync<T, P, O = T>(
+export function useRxAsync<I, P, O = I>(
   fn: RxAsyncFnWithParam<O, P>,
-  options: RxAsyncOptions<T, O> & {
+  options: RxAsyncOptions<I, O> & {
     initialValue: O;
     defer: true;
   }
 ): RxAsyncStateWithParam<O, P> & { data: O };
 
-export function useRxAsync<T, P, O = T>(
+export function useRxAsync<I, P, O = I>(
   fn: RxAsyncFnOptionalParam<O, P>,
-  options?: RxAsyncOptions<T, O>
+  options?: RxAsyncOptions<I, O>
 ): RxAsyncStateOptionalParam<O, P>;
 
-export function useRxAsync<T, P, O = T>(
+export function useRxAsync<I, P, O = I>(
   fn: RxAsyncFnWithParam<O, P>,
-  options: RxAsyncOptions<T, O> & {
+  options: RxAsyncOptions<I, O> & {
     defer: true;
   }
 ): RxAsyncStateWithParam<O, P>;
 
-export function useRxAsync<T, P, O = T>(
+export function useRxAsync<I, P, O = I>(
   fn: RxAsyncFn<O, P>,
-  options: RxAsyncOptions<T, O> = {}
+  options: RxAsyncOptions<I, O> = {}
 ): RxAsyncState<O, P> {
   const { defer, pipe, initialValue, onStart, onSuccess, onFailure } =
     options || {};
