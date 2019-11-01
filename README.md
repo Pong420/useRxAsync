@@ -32,6 +32,7 @@ const rxAsyncFn = (result: string) => timer(1000).pipe(map(() => result));
 | initialValue | set the initial value of your `asyncFn`                                                                                                          |
 | defer        | by default, your `asyncFn` will be call at initial or it changed. if you set `defer` to true, it will only run when you execute the `run` mehtod |
 | pipe         | rxjs pipe, not useful feature                                                                                                                    |
+| onStart      | callback when `asyncFn` start                                                                                                                    |
 | onSuccess    | callback when `asyncFn` success                                                                                                                  |
 | onFaulure    | callback when `asyncFn` failure                                                                                                                  |
 
