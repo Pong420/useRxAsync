@@ -149,10 +149,10 @@ export function useRxAsync<I, P, O = I>(
     dispatch({ type: 'CANCEL' });
   }, [dispatch, subscription]);
 
-  const reset = useCallback(
-    () => dispatch({ type: 'RESET', payload: initialValue }),
-    [initialValue]
-  );
+  const reset = useCallback(() => {
+    subscription.current.unsubscribe();
+    dispatch({ type: 'RESET', payload: initialValue });
+  }, [initialValue]);
 
   useEffect(() => {
     !defer && run();
