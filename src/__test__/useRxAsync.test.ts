@@ -20,13 +20,25 @@ test('typings', async () => {
   const caseD = renderHook(() => useRxAsync(requestWithoutParam));
 
   act(() => caseA.result.current.run(1000));
+  await caseA.waitForNextUpdate();
+
   act(() => caseB.result.current.run(1000));
+  await caseB.waitForNextUpdate();
+
   act(() => caseC.result.current.run(1000));
+  await caseC.waitForNextUpdate();
+
   act(() => caseD.result.current.run(1000));
+  await caseD.waitForNextUpdate();
 
   act(() => caseB.result.current.run());
+  await caseB.waitForNextUpdate();
+
   act(() => caseC.result.current.run());
+  await caseC.waitForNextUpdate();
+
   act(() => caseD.result.current.run());
+  await caseD.waitForNextUpdate();
 });
 
 test('basic', async () => {
