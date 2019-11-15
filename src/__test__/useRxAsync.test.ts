@@ -1,14 +1,14 @@
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
+import { useCallback, useState } from 'react';
 
 const request = () => Promise.resolve(1);
+const requestWithParam = (ms: number) => Promise.resolve(ms);
+const requestWithoutParam = () => Promise.resolve(1000);
+const requestOptionalParam = (ms = 1000) => Promise.resolve(ms);
 const errorReqest = () => Promise.reject('error');
 
 test('typings', async () => {
-  const requestWithParam = (ms: number) => Promise.resolve(ms);
-  const requestWithoutParam = () => Promise.resolve(1000);
-  const requestOptionalParam = (ms = 1000) => Promise.resolve(ms);
-
   const caseA = renderHook(() => useRxAsync(requestWithParam, { defer: true }));
   const caseB = renderHook(() =>
     useRxAsync(requestWithoutParam, { defer: true })
@@ -41,7 +41,15 @@ test('typings', async () => {
 });
 
 test('basic', async () => {
-  const { result, waitForNextUpdate } = renderHook(() => useRxAsync(request));
+  function useTest() {
+    const [page, setPage] = useState(0);
+    const request = useCallback(() => requestWithParam(page), [page]);
+    const next = useCallback(() => setPage(page => page + 1), []);
+    const { data, ...reset } = useRxAsync(request);
+    return { data, next, ...reset };
+  }
+
+  const { result, waitForNextUpdate } = renderHook(() => useTest());
 
   expect(result.current.loading).toBe(true);
   expect(result.current.error).toBe(undefined);
@@ -50,6 +58,15 @@ test('basic', async () => {
 
   expect(result.current.loading).toBe(false);
   expect(result.current.error).toBe(undefined);
+  expect(result.current.data).toBe(0);
+
+  act(() => result.current.next());
+
+  expect(result.current.loading).toBe(true);
+
+  await waitForNextUpdate();
+
+  expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(1);
 });
 

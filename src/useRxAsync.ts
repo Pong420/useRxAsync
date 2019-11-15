@@ -179,7 +179,7 @@ export function useRxAsync<I, P>(
 
   useEffect(() => {
     !defer && run();
-  }, [dispatch, run, defer]);
+  }, [dispatch, run, defer, fn]);
 
   return { ...state, run, cancel, reset };
 }
