@@ -31,10 +31,10 @@ const rxAsyncFn = (result: string) => timer(1000).pipe(map(() => result));
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | initialValue | set the initial value of your `asyncFn`                                                                                                          |
 | defer        | by default, your `asyncFn` will be call at initial or it changed. if you set `defer` to true, it will only run when you execute the `run` mehtod |
-| pipe         | rxjs pipe, not useful feature                                                                                                                    |
-| onStart      | callback when `asyncFn` start                                                                                                                    |
-| onSuccess    | callback when `asyncFn` success                                                                                                                  |
-| onFaulure    | callback when `asyncFn` failure                                                                                                                  |
+| onStart      | callback when `asyncFn` start, () => void                                                                                                        |
+| onSuccess    | callback when `asyncFn` success, (result) => void                                                                                                |
+| onFaulure    | callback when `asyncFn` failure, (error: any) => void                                                                                            |
+| mapOperator  | switchMap, concatMap , exhaustMap , mergeMap , flatMap, default is switchMap                                                                     |
 
 ## Recipes
 
@@ -80,9 +80,7 @@ const asyncFnWithParam = (result: string) => delay(1000).then(() => result);
 function useHooks() {
   const [result, setResult] = useState<string>();
   const asyncFn = useCallback(() => {
-    return typeof result === 'string'
-      ? asyncFnWithParam(result)
-      : Promise.reject();
+    return typeof result === 'string' ? asyncFnWithParam(result) : Promise.reject();
   }, [result]);
   const { loading, data } = useRxAsync(asyncFn);
 

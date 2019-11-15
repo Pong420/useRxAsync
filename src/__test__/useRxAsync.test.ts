@@ -1,9 +1,8 @@
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
 
-const delay = (ms: number) => new Promise(_ => setTimeout(_, ms));
-const request = () => delay(0).then(() => 1);
-const errorReqest = () => delay(0).then(() => Promise.reject('error'));
+const request = () => Promise.resolve(1);
+const errorReqest = () => Promise.reject('error');
 
 test('typings', async () => {
   const requestWithParam = (ms: number) => Promise.resolve(ms);
@@ -81,22 +80,39 @@ test('cancellation', async () => {
     result.current.cancel();
   });
 
+  expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(undefined);
 
   act(() => {
     result.current.run();
   });
 
+  expect(result.current.loading).toBe(true);
+
   await waitForNextUpdate();
 
   expect(result.current.data).toBe(1);
 
   act(() => {
+    result.current.run();
     result.current.cancel();
   });
 
-  // After cancel data should be same as before
+  // After request cancelled, data should be same as before
+  expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(1);
+});
+
+test('reset', async () => {
+  const { result } = renderHook(() => useRxAsync(request, { initialValue: 0 }));
+
+  act(() => {
+    result.current.reset();
+  });
+
+  expect(result.current.loading).toBe(false);
+  expect(result.current.error).toBe(undefined);
+  expect(result.current.data).toBe(0);
 });
 
 test('error', async () => {
