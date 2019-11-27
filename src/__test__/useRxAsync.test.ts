@@ -1,6 +1,6 @@
+import { useCallback, useState } from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
-import { useCallback, useState } from 'react';
 
 const request = () => Promise.resolve(1);
 const requestWithParam = (ms: number) => Promise.resolve(ms);
@@ -68,6 +68,33 @@ test('basic', async () => {
 
   expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(1);
+});
+
+test('state should reset before subscribe', async () => {
+  function useShouldCleanUp() {
+    const [flag, setFlag] = useState(0);
+    const onSuccess = useCallback(() => flag, [flag]);
+    const state = useRxAsync(request, {
+      defer: true,
+      onSuccess,
+    });
+
+    return { ...state, setFlag };
+  }
+
+  const { result } = renderHook(() => useShouldCleanUp());
+
+  act(() => {
+    result.current.run();
+  });
+
+  expect(result.current.loading).toBe(true);
+
+  act(() => {
+    result.current.setFlag(curr => curr + 1);
+  });
+
+  expect(result.current.loading).toBe(false);
 });
 
 test('defer', async () => {

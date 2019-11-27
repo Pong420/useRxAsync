@@ -153,6 +153,8 @@ export function useRxAsync<I, P>(
   }, [initialValue]);
 
   useEffect(() => {
+    dispatch({ type: 'RESET' });
+
     const subscription = subject.current
       .pipe(
         mapOperator(params => {
