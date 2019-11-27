@@ -76,6 +76,7 @@ test('state should reset before subscribe', async () => {
     const onSuccess = useCallback(() => flag, [flag]);
     const state = useRxAsync(request, {
       defer: true,
+      initialValue: 0,
       onSuccess,
     });
 
@@ -88,12 +89,14 @@ test('state should reset before subscribe', async () => {
     result.current.run();
   });
 
+  expect(result.current.data).toBe(0);
   expect(result.current.loading).toBe(true);
 
   act(() => {
     result.current.setFlag(curr => curr + 1);
   });
 
+  expect(result.current.data).toBe(0);
   expect(result.current.loading).toBe(false);
 });
 

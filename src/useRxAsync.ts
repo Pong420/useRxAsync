@@ -153,7 +153,7 @@ export function useRxAsync<I, P>(
   }, [initialValue]);
 
   useEffect(() => {
-    dispatch({ type: 'RESET' });
+    reset();
 
     const subscription = subject.current
       .pipe(
@@ -177,7 +177,17 @@ export function useRxAsync<I, P>(
       .subscribe();
 
     return () => subscription.unsubscribe();
-  }, [dispatch, run, defer, fn, mapOperator, onStart, onSuccess, onFailure]);
+  }, [
+    dispatch,
+    run,
+    defer,
+    reset,
+    fn,
+    mapOperator,
+    onStart,
+    onSuccess,
+    onFailure,
+  ]);
 
   useEffect(() => {
     !defer && run();
