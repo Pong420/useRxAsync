@@ -80,7 +80,9 @@ const asyncFnWithParam = (result: string) => delay(1000).then(() => result);
 function useHooks() {
   const [result, setResult] = useState<string>();
   const asyncFn = useCallback(() => {
-    return typeof result === 'string' ? asyncFnWithParam(result) : Promise.reject();
+    return typeof result === 'string'
+      ? asyncFnWithParam(result)
+      : Promise.reject();
   }, [result]);
   const { loading, data } = useRxAsync(asyncFn);
 
@@ -103,7 +105,7 @@ function useHooks() {
 ```tsx
 const apiRequest = () => fetch('/api').then<string[]>(res => res.json());
 
-// without initialValue the type of data will be `string[] | undefined`
+// without `initialValue` the type of data will be `string[] | undefined`
 // so you will need to check the data is not undefined
 function WithoutInitialValue() {
   const { data } = useRxAsync(apiRequest);
@@ -118,10 +120,13 @@ function WithoutInitialValue() {
   );
 }
 
-// with initialValue the type of data will always be `string[]`
+// with `initialValue` the type of data will always be `string[]`
+// if your `initialValues` if array or object, it should be defined out of the component or wrap width useMemo
+const initialValue: string[] = [];
+
 function WithInitialValue() {
   const { data } = useRxAsync(apiRequest, {
-    initialValue: [],
+    initialValue,
   });
 
   return (
