@@ -25,7 +25,7 @@ export interface RxAsyncOptions<I> {
   initialValue?: I;
   defer?: boolean;
   onStart?(): void;
-  onSuccess?(value: any): void;
+  onSuccess?(value: I): void;
   onFailure?(error: any): void;
   mapOperator?:
     | typeof switchMap
