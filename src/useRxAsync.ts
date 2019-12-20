@@ -1,14 +1,13 @@
-import { useEffect, useCallback, useReducer, useRef, Reducer } from 'react';
-import { from, ObservableInput, Subject, empty } from 'rxjs';
+import { useEffect, useReducer, useRef, useMemo, Reducer } from 'react';
+import { from, ObservableInput, Subject } from 'rxjs';
 import {
-  map,
-  catchError,
   exhaustMap,
   switchMap,
   concatMap,
   mergeMap,
   flatMap,
   takeUntil,
+  tap,
 } from 'rxjs/operators';
 
 type RxAsyncFnWithParam<I, P> = (params: P) => ObservableInput<I>;
@@ -95,6 +94,8 @@ function reducer<I>(state: State<I>, action: Actions<I>): State<I> {
   }
 }
 
+const defaultFn = () => {};
+
 export function useRxAsync<I, P>(
   fn: RxAsyncFnOptionalParam<I, P>,
   options: RxAsyncOptions<I> & {
@@ -129,11 +130,11 @@ export function useRxAsync<I, P>(
   const {
     defer,
     initialValue,
-    onStart,
-    onSuccess,
-    onFailure,
+    onStart = defaultFn,
+    onSuccess = defaultFn,
+    onFailure = defaultFn,
     mapOperator = switchMap,
-  } = options || {};
+  } = options;
 
   const [state, dispatch] = useReducer<
     Reducer<State<I>, Actions<I>>,
@@ -143,19 +144,20 @@ export function useRxAsync<I, P>(
   const subject = useRef(new Subject<P>());
   const cancelSubject = useRef(new Subject());
 
-  const run = useCallback(
-    (params?: P) => subject.current.next(params as P),
-    []
-  );
+  const { run, cancel, reset } = useMemo(() => {
+    const run = (params?: P) => subject.current.next(params as P);
 
-  const cancel = useCallback(() => {
-    cancelSubject.current.next();
-    dispatch({ type: 'CANCEL' });
-  }, [dispatch]);
+    const cancel = () => {
+      cancelSubject.current.next();
+      dispatch({ type: 'CANCEL' });
+    };
 
-  const reset = useCallback(() => {
-    cancelSubject.current.next();
-    dispatch({ type: 'RESET' });
+    const reset = () => {
+      cancelSubject.current.next();
+      dispatch({ type: 'RESET' });
+    };
+
+    return { run, cancel, reset };
   }, []);
 
   useEffect(() => {
@@ -163,37 +165,29 @@ export function useRxAsync<I, P>(
 
     const subscription = subject.current
       .pipe(
-        mapOperator(params => {
-          onStart && onStart();
+        tap(() => {
+          onStart();
           dispatch({ type: 'FETCH_INIT' });
-          return from<ObservableInput<I>>(fn(params)).pipe(
-            map(payload => {
-              dispatch({ type: 'FETCH_SUCCESS', payload });
-              onSuccess && onSuccess(payload);
-            }),
-            catchError(payload => {
-              dispatch({ type: 'FETCH_FAILURE', payload });
-              onFailure && onFailure(payload);
-              return empty();
-            }),
+        }),
+        mapOperator(params =>
+          from<ObservableInput<I>>(fn(params)).pipe(
             takeUntil(cancelSubject.current)
-          );
-        })
+          )
+        )
       )
-      .subscribe();
+      .subscribe(
+        payload => {
+          dispatch({ type: 'FETCH_SUCCESS', payload });
+          onSuccess(payload);
+        },
+        payload => {
+          dispatch({ type: 'FETCH_FAILURE', payload });
+          onFailure(payload);
+        }
+      );
 
     return () => subscription.unsubscribe();
-  }, [
-    dispatch,
-    run,
-    defer,
-    reset,
-    fn,
-    mapOperator,
-    onStart,
-    onSuccess,
-    onFailure,
-  ]);
+  }, [fn, run, defer, reset, mapOperator, onStart, onSuccess, onFailure]);
 
   useEffect(() => {
     !defer && run();

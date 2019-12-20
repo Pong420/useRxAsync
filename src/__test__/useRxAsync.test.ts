@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
+import { mergeMap } from 'rxjs/operators';
 
 const request = () => Promise.resolve(1);
 const requestWithParam = (ms: number) => Promise.resolve(ms);
 const requestWithoutParam = () => Promise.resolve(1000);
 const requestOptionalParam = (ms = 1000) => Promise.resolve(ms);
-const errorReqest = () => Promise.reject('error');
+const errorReqest = async () => Promise.reject('error');
 
 test('typings', async () => {
   const caseA = renderHook(() => useRxAsync(requestWithParam, { defer: true }));
@@ -41,11 +42,19 @@ test('typings', async () => {
 });
 
 test('basic', async () => {
+  const onStart = jest.fn();
+  const onSuccess = jest.fn();
+  const onFailure = jest.fn();
+
   function useTest() {
     const [page, setPage] = useState(0);
     const request = useCallback(() => requestWithParam(page), [page]);
     const next = useCallback(() => setPage(page => page + 1), []);
-    const { data, ...reset } = useRxAsync(request);
+    const { data, ...reset } = useRxAsync(request, {
+      onStart,
+      onSuccess,
+      onFailure,
+    });
     return { data, next, ...reset };
   }
 
@@ -53,21 +62,47 @@ test('basic', async () => {
 
   expect(result.current.loading).toBe(true);
   expect(result.current.error).toBe(undefined);
+  expect(onStart).toHaveBeenCalledTimes(1);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   await waitForNextUpdate();
 
   expect(result.current.loading).toBe(false);
   expect(result.current.error).toBe(undefined);
   expect(result.current.data).toBe(0);
+  expect(onStart).toHaveBeenCalledTimes(1);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   act(() => result.current.next());
 
   expect(result.current.loading).toBe(true);
+  expect(onStart).toHaveBeenCalledTimes(2);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   await waitForNextUpdate();
 
   expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(1);
+  expect(onStart).toHaveBeenCalledTimes(2);
+  expect(onSuccess).toHaveBeenCalledTimes(2);
+  expect(onFailure).toHaveBeenCalledTimes(0);
+
+  act(() => result.current.next());
+  act(() => result.current.next());
+  act(() => result.current.next());
+
+  expect(onStart).toHaveBeenCalledTimes(5);
+  expect(onSuccess).toHaveBeenCalledTimes(2);
+  expect(onFailure).toHaveBeenCalledTimes(0);
+
+  await waitForNextUpdate();
+
+  expect(result.current.data).toBe(4);
+  expect(onSuccess).toHaveBeenCalledTimes(3);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 });
 
 test('state should reset before subscribe', async () => {
@@ -119,7 +154,12 @@ test('defer', async () => {
 });
 
 test('cancellation', async () => {
-  const { result, waitForNextUpdate } = renderHook(() => useRxAsync(request));
+  const onStart = jest.fn();
+  const onSuccess = jest.fn();
+  const onFailure = jest.fn();
+  const { result, waitForNextUpdate } = renderHook(() =>
+    useRxAsync(request, { onStart, onSuccess, onFailure })
+  );
 
   expect(result.current.data).toBe(undefined);
 
@@ -129,16 +169,25 @@ test('cancellation', async () => {
 
   expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(undefined);
+  expect(onStart).toHaveBeenCalledTimes(1);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   act(() => {
     result.current.run();
   });
 
   expect(result.current.loading).toBe(true);
+  expect(onStart).toHaveBeenCalledTimes(2);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   await waitForNextUpdate();
 
   expect(result.current.data).toBe(1);
+  expect(onStart).toHaveBeenCalledTimes(2);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 
   act(() => {
     result.current.run();
@@ -148,9 +197,15 @@ test('cancellation', async () => {
   // After request cancelled, data should be same as before
   expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(1);
+  expect(onStart).toHaveBeenCalledTimes(3);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 });
 
 test('reset', async () => {
+  const onStart = jest.fn();
+  const onSuccess = jest.fn();
+  const onFailure = jest.fn();
   const { result } = renderHook(() => useRxAsync(request, { initialValue: 0 }));
 
   act(() => {
@@ -160,11 +215,34 @@ test('reset', async () => {
   expect(result.current.loading).toBe(false);
   expect(result.current.error).toBe(undefined);
   expect(result.current.data).toBe(0);
+  expect(onStart).toHaveBeenCalledTimes(0);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(0);
+
+  act(() => {
+    result.current.run();
+  });
+
+  act(() => {
+    result.current.reset();
+  });
+
+  expect(onStart).toHaveBeenCalledTimes(0);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(0);
 });
 
 test('error', async () => {
+  const onStart = jest.fn();
+  const onSuccess = jest.fn();
+  const onFailure = jest.fn();
   const { result, waitForNextUpdate } = renderHook(() =>
-    useRxAsync(errorReqest)
+    useRxAsync(errorReqest, {
+      onStart,
+      onSuccess,
+      onFailure,
+      mapOperator: mergeMap,
+    })
   );
 
   await waitForNextUpdate();
@@ -172,4 +250,12 @@ test('error', async () => {
   expect(result.current.error).toBe('error');
   expect(result.current.loading).toBe(false);
   expect(result.current.data).toBe(undefined);
+  expect(onSuccess).toHaveBeenCalledTimes(0);
+  expect(onFailure).toHaveBeenCalledTimes(1);
+
+  act(() => result.current.run());
+  act(() => result.current.run());
+  act(() => result.current.run());
+
+  expect(onFailure).toHaveBeenCalledTimes(1);
 });
