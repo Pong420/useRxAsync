@@ -56,6 +56,7 @@ interface State<I> {
   loading: boolean;
   error?: any;
   data?: I;
+  initialValue?: I;
 }
 
 type Actions<I> =
@@ -63,19 +64,24 @@ type Actions<I> =
   | { type: 'FETCH_SUCCESS'; payload: I }
   | { type: 'FETCH_FAILURE'; payload?: any }
   | { type: 'CANCEL' }
-  | { type: 'RESET'; payload?: I };
+  | { type: 'RESET' };
 
-function init<I>(data?: I): State<I> {
+function initializerArg<I>(data?: I): State<I> {
   return {
     loading: false,
     data,
+    initialValue: data,
   };
 }
 
 function reducer<I>(state: State<I>, action: Actions<I>): State<I> {
   switch (action.type) {
     case 'FETCH_INIT':
-      return { ...init(state.data), loading: true };
+      return {
+        ...initializerArg(state.data),
+        initialValue: state.initialValue,
+        loading: true,
+      };
     case 'FETCH_SUCCESS':
       return { ...state, loading: false, data: action.payload };
     case 'FETCH_FAILURE':
@@ -83,7 +89,7 @@ function reducer<I>(state: State<I>, action: Actions<I>): State<I> {
     case 'CANCEL':
       return { ...state, loading: false };
     case 'RESET':
-      return { ...init(action.payload) };
+      return { ...initializerArg(state.initialValue) };
     default:
       throw new Error();
   }
@@ -132,7 +138,7 @@ export function useRxAsync<I, P>(
   const [state, dispatch] = useReducer<
     Reducer<State<I>, Actions<I>>,
     I | undefined
-  >(reducer, initialValue, init);
+  >(reducer, initialValue, initializerArg);
 
   const subject = useRef(new Subject<P>());
   const cancelSubject = useRef(new Subject());
@@ -149,8 +155,8 @@ export function useRxAsync<I, P>(
 
   const reset = useCallback(() => {
     cancelSubject.current.next();
-    dispatch({ type: 'RESET', payload: initialValue });
-  }, [initialValue]);
+    dispatch({ type: 'RESET' });
+  }, []);
 
   useEffect(() => {
     reset();

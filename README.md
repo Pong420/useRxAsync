@@ -120,13 +120,10 @@ function WithoutInitialValue() {
   );
 }
 
-// with `initialValue` the type of data will always be `string[]`
-// if your `initialValues` if array or object, it should be defined out of the component or wrap width useMemo
-const initialValue: string[] = [];
-
+// Note: initialValue will not change dynamically
 function WithInitialValue() {
   const { data } = useRxAsync(apiRequest, {
-    initialValue,
+    initialValue: [],
   });
 
   return (
