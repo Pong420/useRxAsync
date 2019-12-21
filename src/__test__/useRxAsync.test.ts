@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
-import { mergeMap } from 'rxjs/operators';
 
 const request = () => Promise.resolve(1);
 const requestWithParam = (ms: number) => Promise.resolve(ms);
 const requestWithoutParam = () => Promise.resolve(1000);
 const requestOptionalParam = (ms = 1000) => Promise.resolve(ms);
 const errorReqest = async () => Promise.reject('error');
+const controledRequest = async (error = false) =>
+  error ? Promise.reject('error') : Promise.resolve(1000);
 
 test('typings', async () => {
   const caseA = renderHook(() => useRxAsync(requestWithParam, { defer: true }));
@@ -103,6 +104,33 @@ test('basic', async () => {
   expect(result.current.data).toBe(4);
   expect(onSuccess).toHaveBeenCalledTimes(3);
   expect(onFailure).toHaveBeenCalledTimes(0);
+});
+
+test('after failure', async () => {
+  const { result, waitForNextUpdate } = renderHook(() =>
+    useRxAsync(controledRequest, { defer: true })
+  );
+
+  act(() => result.current.run());
+
+  expect(result.current.loading).toBe(true);
+
+  await waitForNextUpdate();
+
+  expect(result.current.loading).toBe(false);
+
+  act(() => result.current.run(true));
+
+  await waitForNextUpdate();
+
+  expect(result.current.loading).toBe(false);
+
+  act(() => result.current.run());
+
+  await waitForNextUpdate();
+
+  expect(result.current.loading).toBe(false);
+  expect(result.current.data).toBe(1000);
 });
 
 test('state should reset before subscribe', async () => {
@@ -238,12 +266,14 @@ test('error', async () => {
   const onFailure = jest.fn();
   const { result, waitForNextUpdate } = renderHook(() =>
     useRxAsync(errorReqest, {
+      defer: true,
       onStart,
       onSuccess,
       onFailure,
-      mapOperator: mergeMap,
     })
   );
+
+  act(() => result.current.run());
 
   await waitForNextUpdate();
 
@@ -257,5 +287,7 @@ test('error', async () => {
   act(() => result.current.run());
   act(() => result.current.run());
 
-  expect(onFailure).toHaveBeenCalledTimes(1);
+  await waitForNextUpdate();
+
+  expect(onFailure).toHaveBeenCalledTimes(2);
 });

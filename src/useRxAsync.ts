@@ -1,13 +1,13 @@
 import { useEffect, useReducer, useRef, useMemo, Reducer } from 'react';
-import { from, ObservableInput, Subject } from 'rxjs';
+import { from, ObservableInput, Subject, empty } from 'rxjs';
 import {
   exhaustMap,
   switchMap,
   concatMap,
   mergeMap,
   flatMap,
+  catchError,
   takeUntil,
-  tap,
 } from 'rxjs/operators';
 
 type RxAsyncFnWithParam<I, P> = (params: P) => ObservableInput<I>;
@@ -165,33 +165,32 @@ export function useRxAsync<I, P>(
 
     const subscription = subject.current
       .pipe(
-        tap(() => {
+        mapOperator(params => {
           onStart();
           dispatch({ type: 'FETCH_INIT' });
-        }),
-        mapOperator(params =>
-          from<ObservableInput<I>>(fn(params)).pipe(
+          return from<ObservableInput<I>>(fn(params)).pipe(
+            catchError(payload => {
+              onFailure(payload);
+              dispatch({ type: 'FETCH_FAILURE', payload });
+              return empty();
+            }),
             takeUntil(cancelSubject.current)
-          )
-        )
+          );
+        })
       )
-      .subscribe(
-        payload => {
-          dispatch({ type: 'FETCH_SUCCESS', payload });
-          onSuccess(payload);
-        },
-        payload => {
-          dispatch({ type: 'FETCH_FAILURE', payload });
-          onFailure(payload);
-        }
-      );
+      .subscribe(payload => {
+        dispatch({ type: 'FETCH_SUCCESS', payload });
+        onSuccess(payload);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [fn, run, defer, reset, mapOperator, onStart, onSuccess, onFailure]);
 
   useEffect(() => {
     !defer && run();
-  }, [dispatch, run, defer, fn]);
+  }, [run, defer, fn]);
 
   return { ...state, run, cancel, reset };
 }
