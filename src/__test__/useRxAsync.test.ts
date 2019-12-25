@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useRxAsync } from '../useRxAsync';
+import { from, throwError, of } from 'rxjs';
+import { retryWhen, switchMap, delay, debounceTime } from 'rxjs/operators';
 
 const request = () => Promise.resolve(1);
 const requestWithParam = (ms: number) => Promise.resolve(ms);
@@ -290,4 +292,74 @@ test('error', async () => {
   await waitForNextUpdate();
 
   expect(onFailure).toHaveBeenCalledTimes(2);
+});
+
+describe('observable', () => {
+  test('basic', async () => {
+    const asyncFn = () => from(request());
+    const { result, waitForNextUpdate } = renderHook(() => useRxAsync(asyncFn));
+
+    expect(result.current.loading).toBe(true);
+
+    await waitForNextUpdate();
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBe(1);
+  });
+
+  test('retry', async () => {
+    const onStart = jest.fn();
+    const onSuccess = jest.fn();
+    const onFailure = jest.fn();
+    const asyncFn = () =>
+      from(errorReqest()).pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            switchMap((error, index) =>
+              index === 3 ? throwError(error) : of(error)
+            ),
+            delay(1)
+          )
+        )
+      );
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useRxAsync(asyncFn, { onStart, onSuccess, onFailure })
+    );
+
+    expect(result.current.loading).toBe(true);
+
+    await waitForNextUpdate();
+
+    expect(result.current.loading).toBe(false);
+    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledTimes(0);
+    expect(onFailure).toHaveBeenCalledTimes(1);
+  });
+
+  test('debounce', async () => {
+    const onStart = jest.fn();
+    const onSuccess = jest.fn();
+    const onFailure = jest.fn();
+    const asyncFn = (ms = 1) =>
+      from(requestOptionalParam(ms)).pipe(debounceTime(1));
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useRxAsync(asyncFn, { defer: true, onStart, onSuccess, onFailure })
+    );
+
+    act(() => result.current.run(1));
+    act(() => result.current.run(2));
+    act(() => result.current.run(3));
+
+    expect(result.current.loading).toBe(true);
+
+    await waitForNextUpdate();
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBe(3);
+    expect(onStart).toHaveBeenCalledTimes(3);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onFailure).toHaveBeenCalledTimes(0);
+  });
 });
