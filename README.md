@@ -1,6 +1,6 @@
 ## useRxAsync
 
-Fetch data with react hooks and rxjs. Inspired by [react-async](https://github.com/async-library/react-async)
+Fetch data with React hooks and RxJS. Inspired by [react-async](https://github.com/async-library/react-async)
 
 ```js
 const state = useRxAsync(asyncFn, options?);
@@ -123,7 +123,7 @@ const asyncFn = () =>
 
 function Component() {
   const state = useRxAsync(asyncFn);
-  
+
   // ....
 }
 ```
@@ -142,4 +142,12 @@ const { data = [] } = useRxAsync(apiRequest);
 
 ## Caching
 
-if you are axios user, you could use [kuitos/axios-extensions](https://github.com/kuitos/axios-extensions)
+If you are axios user, you could use [kuitos/axios-extensions](https://github.com/kuitos/axios-extensions)
+
+## More React hooks with RxJS
+
+- [Pong420/use-rx-hooks](https://github.com/Pong420/use-rx-hooks)
+
+## License
+
+[MIT](./LICENSE)
