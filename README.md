@@ -100,56 +100,44 @@ function useHooks() {
 }
 ```
 
-### With initial value
+### With RxJS operators
 
-```tsx
-const apiRequest = () => fetch('/api').then<string[]>(res => res.json());
+```ts
+import { timer } from 'rxjs';
+import { delayWhen, retryWhen, take } from 'rxjs/operators';
 
-// without `initialValue` the type of data will be `string[] | undefined`
-// so you will need to check the data is not undefined
-function WithoutInitialValue() {
-  const { data } = useRxAsync(apiRequest);
+const yourApiRequest = () => fetch('/api').then(res => res.json());
 
-  return (
-    <ul>
-      {data &&
-        data.map((str, index) => {
-          return <li key={index}>{str}</li>;
-        })}
-    </ul>
+// if the request has errors, delay 1 second then retry up to 3 times
+const asyncFn = () =>
+  from(yourApiRequest()).pipe(
+    retryWhen(errors =>
+      errors.pipe(
+        switchMap((error, index) =>
+          index === 3 ? throwError(error) : of(error)
+        ),
+        delayWhen(() => timer(1000))
+      )
+    )
   );
-}
 
-// Note: initialValue will not change dynamically
-function WithInitialValue() {
-  const { data } = useRxAsync(apiRequest, {
-    initialValue: [],
-  });
-
-  return (
-    <ul>
-      {data.map((str, index) => {
-        return <li key={index}>{str}</li>;
-      })}
-    </ul>
-  );
+function Component() {
+  const state = useRxAsync(asyncFn);
+  
+  // ....
 }
 ```
 
-### Pipe
+### With initial value
 
-```ts
-const double = (ob: Observable<number>) => ob.pipe(map(v => v * 2));
-const asyncFn = (result: number) => delay(1000).then(() => result);
+```tsx
+const { data } = useRxAsync(apiRequest, {
+  initialValue: [],
+});
 
-function useHooks() {
-  // pipe cannot apply to initialValue. `data` will be `10` at initial, util next asyncFn success
-  const { loading, data, run } = useRxAsync(asyncFn, {
-    defer: true,
-    initialValue: 10,
-    pipe: double,
-  });
-}
+// or
+
+const { data = [] } = useRxAsync(apiRequest);
 ```
 
 ## Caching
