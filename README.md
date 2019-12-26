@@ -1,5 +1,9 @@
 ## useRxAsync
 
+See [Pong420/use-rx-hooks](https://github.com/Pong420/use-rx-hooks)
+
+---
+
 Fetch data with React hooks and RxJS. Inspired by [react-async](https://github.com/async-library/react-async)
 
 ```js
